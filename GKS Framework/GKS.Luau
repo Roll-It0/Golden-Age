@@ -449,29 +449,4 @@ Kernel:Register({
   end,
 })
 
--------------------------
--- Usage Area | Playground
--------------------------
-
-Kernel:GameRegistry(372226183,{
-	Assert = function()
-		print("Oh I know this one, it's ftf")
-	end,
-	Places = {
-		[game.PlaceId] = {
-			Assert = function()
-				print("Cool")
-			end,
-		},
-	},
-})
-
-Kernel:Boot()
-
-local Library = Kernel:Get("Library")
-
-local Window = Library:Window({
-	Title = "Blah",
-})
-
 return Kernel
