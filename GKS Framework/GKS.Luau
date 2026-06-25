@@ -52,8 +52,8 @@ type KernelType = {
 }
 
 type OrderRule = {
-  string,
-  (any) -> ()
+  [1]:string,
+  [2]:(any) -> (),
 }
 
 -------------------------
