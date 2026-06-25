@@ -51,11 +51,6 @@ type KernelType = {
   GameRegistry:(self:KernelType,gameId:number,config:GameConfig) -> (),
 }
 
-type OrderRule = {
-  [1]:string,
-  [2]:(any) -> (),
-}
-
 -------------------------
 -- Kernel
 -------------------------
@@ -413,7 +408,7 @@ function Utility:UIScale():(number,Vector2)
   return math.clamp(viewport.Y/1080,.65,1.5),viewport
 end
 
-function Utility:Order(rules:{OrderRule},...)
+function Utility:Order(rules:{{any}},...)
   local args = table.pack(...)
   local used = table.create(args.n)
   for i=1,#rules do
