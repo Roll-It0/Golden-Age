@@ -1,0 +1,160 @@
+export type table = {[string]:any}
+export type Categories = {
+  Primary:{[string]:table},
+  Secondary:{[string]:table},
+}
+export type CurrentThemes = {
+  Primary:string?,
+  Secondary:string?,
+}
+export type Theme = {
+  Themes:Categories,
+  Current:CurrentThemes,
+  Changed:BindableEvent,
+  Register:(self:Theme,category:string,name:string,data:table) -> (),
+  SetTheme:(self:Theme,category:string,name:string) -> (),
+  GetColor:(self:Theme,category:string,path:string) -> Color3,
+}
+export type ThemeBind = {[string]:{string,string}}
+export type UtilityType = {
+  ThemeObjects:{[Instance]:ThemeBind},
+  UpdateThemes:(self:UtilityType,category:string) -> (),
+  Create:(self:UtilityType,class:string,props:{[string]:any}?) -> Instance,
+  UIScale:(self:UtilityType) -> (number,Vector2),
+  Order:(self:UtilityType,rules:{{any}},...any) -> (),
+}
+local ThemeSystem:Type = {
+  Themes = {
+    Primary = {},
+    Secondary = {},
+  },
+  Current = {
+    Primary = nil,
+    Secondary = nil,
+  },
+  Changed = Instance.new("BindableEvent"),
+}::any
+function ThemeSystem:Register(category:string,name:string,data:table)
+  local cat = self.Themes[category]
+  if not cat then
+    cat = {}
+    self.Themes[category] = cat
+  end
+  cat[name] = data
+end
+function ThemeSystem:SetTheme(category:string,name:string)
+  local current = self.Current[category]
+  if current ~= name then
+    self.Current[category] = name
+    self.Changed:Fire(category)
+  end
+end
+
+local function ResolvePath(root:any,path:string):any
+  local current = root
+  local start = 1
+  local len = #path
+  while true do
+    local dot = string.find(path,".",start,true)
+    local segment
+    if dot then
+      segment = string.sub(path,start,dot-1)
+      start = dot+1
+    else
+      segment = string.sub(path,start,len)
+    end
+    current = current and current[segment]
+    if not current or not dot then
+      break
+    end
+  end
+  return current
+end
+function ThemeSystem:GetColor(category:string,path:string):Color3
+  local name = self.Current[category]
+  if not name then
+    return Color3.new(1,1,1)
+  end
+  local cat = self.Themes[category]
+  if not cat then
+    return Color3.new(1,1,1)
+  end
+  local theme = cat[name]
+  if not theme then
+    return Color3.new(1,1,1)
+  end
+  local value = ResolvePath(theme,path)
+  if typeof(value) == "Color3" then
+    return value
+  end
+  return Color3.new(1,1,1)
+end
+local Utility:UtilityType = {
+  ThemeObjects = {},
+}::any
+function Utility:UpdateThemes(category:string)
+  local themeobjs = self.ThemeObjects
+  for object,binds in pairs(themeobjs) do
+    if not object.Parent then
+      themeobjs[object] = nil
+    else
+      for property,data in pairs(binds) do
+        if data[1] == category then
+          object[property] = ThemeSystem:GetColor(data[1],data[2])
+        end
+      end
+    end
+  end
+end
+ThemeSystem.Changed.Event:Connect(function(category:string)
+  Utility:UpdateThemes(category)
+end)
+function Utility:UIScale():(number,Vector2)
+  local camera = workspace.CurrentCamera
+  local viewport:Vector2 = camera and camera.ViewportSize or Vector2.new(1920,1080)
+  local scale = viewport.Y/1080
+  return scale,viewport
+end
+function Utility:Order(rules:{{any}},...:any)
+  local args = table.pack(...)
+  local n = args.n
+  local used = table.create(n)
+  for i=1,#rules do
+    local rule = rules[i]
+    local expected = rule[1]
+    local callback = rule[2]
+    for j=1,n do
+      if not used[j] and typeof(args[j]) == expected then
+        used[j] = true
+        callback(args[j])
+        break
+      end
+    end
+  end
+end
+local Creation = {}::any
+function Creation:Create(class:string,props:{[string]:any}?):Instance
+  local object = Instance.new(class)
+  local binds:ThemeBind? = nil
+  if props then
+    for property,value in pairs(props) do
+      if typeof(value) == "table" and #value == 2 and typeof(value[1]) == "string" and typeof(value[2]) == "string" then
+        if not binds then
+          binds = {}
+        end
+        binds[property] = value::{string,string}
+        object[property] = ThemeSystem:GetColor(value[1],value[2])
+      else
+        object[property] = value
+      end
+    end
+  end
+  if binds then
+    self.ThemeObjects[object] = binds
+    object.Destroying:Once(function()
+      self.ThemeObjects[object] = nil
+    end)
+  end
+  return object
+end
+return {Theme = ThemeSystem,Utility = Utility,Create = Creation}
