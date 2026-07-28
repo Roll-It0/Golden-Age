@@ -107,10 +107,10 @@ end
 ThemeSystem.Changed.Event:Connect(function(category:string)
   Utility:UpdateThemes(category)
 end)
-function Utility:UIScale():(number,Vector2)
+function Utility:UIScale(limit:number?):(number,Vector2)
   local camera = workspace.CurrentCamera
   local viewport:Vector2 = camera and camera.ViewportSize or Vector2.new(1920,1080)
-  local scale = math.max(viewport.Y/1080,.6)
+  local scale = math.max(viewport.Y/1080,limit or 1)
   return scale,viewport
 end
 function Utility:Order(rules:{{any}},...:any)
