@@ -131,7 +131,7 @@ function Utility:Order(rules:{{any}},...:any)
   end
 end
 local Creation = {}
-function Creation.Create(class:string,props:{[string]:any}?):Instance
+function Creation.Create(class:string,props:{[string]:any}?):any
   local object = Instance.new(class)
   local binds:ThemeBind? = nil
   if props then
@@ -143,6 +143,9 @@ function Creation.Create(class:string,props:{[string]:any}?):Instance
         binds[property] = value::{string}
         object[property] = ThemeSystem:GetColor(value[1],value[2])
       else
+        if property == "Parent" and typeof(value) == "table" and value._target then
+          value = value._target
+        end
         object[property] = value
       end
     end
