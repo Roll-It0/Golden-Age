@@ -153,6 +153,29 @@ function Creation.Create(class:string,props:{[string]:any}?):Instance
       Utility.ThemeObjects[object] = nil
     end)
   end
-  return object
+  return setmetatable({_target = object},{
+    __index = function(_,k)
+      local v = object[k]
+      if typeof(v) == "function" then
+        return function(_,...)
+          return v(object,...)
+        end
+      end
+      return v
+    end,
+    __newindex = function(_,k,v)
+      if typeof(v) == "table" and #v == 2 and typeof(v[1]) == "string" and typeof(v[2]) == "string" then
+        object[k] = ThemeSystem:GetColor(v[1],v[2])
+        local b = Utility.ThemeObjects[object] or {}
+        Utility.ThemeObjects[object] = b
+        b[k] = v
+      else
+        if typeof(v) == "table" and v._target then
+          v = v._target
+        end
+        object[k] = v
+      end
+    end
+  })
 end
 return {Theme = ThemeSystem,Utility = Utility,Create = Creation.Create}
